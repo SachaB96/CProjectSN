@@ -1,90 +1,56 @@
-#ifdef __cplusplus
-    #include <cstdlib>
-#else
-    #include <stdlib.h>
-#endif
-
+#include <stdlib.h>
+#include <stdio.h>
 #include <SDL/SDL.h>
 
-int main ( int argc, char** argv )
+void pause();
+
+int main(int argc, char *argv[])
 {
-    // initialize SDL video
-    if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+    SDL_Surface *ecran = NULL, *lignes[256] = {NULL};
+    SDL_Rect position;
+    int i = 0;
+
+    SDL_Init(SDL_INIT_VIDEO);
+
+    ecran = SDL_SetVideoMode(640, 256, 32, SDL_HWSURFACE);
+
+    for (i = 0 ; i <= 255 ; i++)
+        lignes[i] = SDL_CreateRGBSurface(SDL_HWSURFACE, 640, 1, 32, 0, 0, 0, 0);
+
+    SDL_WM_SetCaption("Mon dégradé en SDL !", NULL);
+
+    SDL_FillRect(ecran, NULL, SDL_MapRGB(ecran->format, 0, 0, 0));
+
+    for (i = 0 ; i <= 255 ; i++)
     {
-        printf( "Unable to init SDL: %s\n", SDL_GetError() );
-        return 1;
+        position.x = 0; // Les lignes sont à gauche (abscisse de 0)
+        position.y = i; // La position verticale dépend du numéro de la ligne
+        SDL_FillRect(lignes[i], NULL, SDL_MapRGB(ecran->format, i, i, i));
+        SDL_BlitSurface(lignes[i], NULL, ecran, &position);
     }
 
-    // make sure SDL cleans up before exit
-    atexit(SDL_Quit);
+    SDL_Flip(ecran);
+    pause();
 
-    // create a new window
-    SDL_Surface* screen = SDL_SetVideoMode(640, 480, 16,
-                                           SDL_HWSURFACE|SDL_DOUBLEBUF);
-    if ( !screen )
-    {
-        printf("Unable to set 640x480 video: %s\n", SDL_GetError());
-        return 1;
-    }
+    for (i = 0 ; i <= 255 ; i++) // N'oubliez pas de libérer les 256 surfaces
+        SDL_FreeSurface(lignes[i]);
+    SDL_Quit();
 
-    // load an image
-    SDL_Surface* bmp = SDL_LoadBMP("cb.bmp");
-    if (!bmp)
-    {
-        printf("Unable to load bitmap: %s\n", SDL_GetError());
-        return 1;
-    }
-    
-    // centre the bitmap on screen
-    SDL_Rect dstrect;
-    dstrect.x = (screen->w - bmp->w) / 2;
-    dstrect.y = (screen->h - bmp->h) / 2;
+    return EXIT_SUCCESS;
+}
 
-    // program main loop
-    bool done = false;
-    while (!done)
+void pause()
+{
+    int continuer = 1;
+    SDL_Event event;
+
+    while (continuer)
     {
-        // message processing loop
-        SDL_Event event;
-        while (SDL_PollEvent(&event))
+        SDL_WaitEvent(&event);
+        switch(event.type)
         {
-            // check for messages
-            switch (event.type)
-            {
-                // exit if the window is closed
             case SDL_QUIT:
-                done = true;
-                break;
-
-                // check for keypresses
-            case SDL_KEYDOWN:
-                {
-                    // exit if ESCAPE is pressed
-                    if (event.key.keysym.sym == SDLK_ESCAPE)
-                        done = true;
-                    break;
-                }
-            } // end switch
-        } // end of message processing
-
-        // DRAWING STARTS HERE
-        
-        // clear screen
-        SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, 0, 0, 0));
-
-        // draw bitmap
-        SDL_BlitSurface(bmp, 0, screen, &dstrect);
-
-        // DRAWING ENDS HERE
-
-        // finally, update the screen :)
-        SDL_Flip(screen);
-    } // end main loop
-
-    // free loaded bitmap
-    SDL_FreeSurface(bmp);
-
-    // all is well ;)
-    printf("Exited cleanly\n");
-    return 0;
+                continuer = 0;
+        }
+    }
 }
